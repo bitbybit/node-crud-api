@@ -1,5 +1,4 @@
 import http from 'node:http'
-import querystring from 'node:querystring'
 
 type HttpServerParams = {
   port: number
