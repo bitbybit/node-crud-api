@@ -34,6 +34,12 @@ npm run start:dev
 npm run start:multi
 ```
 
+### Tests
+
+```
+npm run test
+```
+
 ## Endpoints
 
 ### Get users
