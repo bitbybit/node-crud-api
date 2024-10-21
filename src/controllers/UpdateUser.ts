@@ -21,10 +21,10 @@ export class UpdateUser extends BaseController implements Controller {
    * @param payload
    * @param payload.data
    * @param payload.url
-   * @returns User
+   * @returns Promise<User>
    * @throws {ValidationError|StoreError}
    */
-  public action({ data, url }: ControllerActionParams): User {
+  public async action({ data, url }: ControllerActionParams): Promise<User> {
     const userId = url.match(this.url)?.[1] ?? ''
 
     if (!isValidId(userId)) {
@@ -56,6 +56,6 @@ export class UpdateUser extends BaseController implements Controller {
       username
     }
 
-    return this.store.updateUser(user)
+    return await this.store.updateUser(user)
   }
 }

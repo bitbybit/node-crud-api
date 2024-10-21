@@ -1,10 +1,10 @@
 import { HttpServer, type Request, type Response } from './HttpServer'
-import { StoreManager } from './StoreManager'
 import {
   type Controller,
   type ControllerPayload,
   type ControllerPayloadKeys,
-  type ControllerPayloadValues
+  type ControllerPayloadValues,
+  type StoreManagerAbstract
 } from '../interfaces'
 import { CreateUser } from '../controllers/CreateUser'
 import { DeleteUser } from '../controllers/DeleteUser'
@@ -19,13 +19,13 @@ import { ValidationError } from '../exceptions/ValidationError'
 type AppParams = {
   port: number
   baseUrl: string
-  store: StoreManager
+  store: StoreManagerAbstract
 }
 
 export class App {
   readonly #baseUrl: string
   readonly #server: HttpServer
-  readonly #store: StoreManager
+  readonly #store: StoreManagerAbstract
   readonly #controllers: Controller[]
 
   constructor(params: AppParams) {
@@ -75,7 +75,7 @@ export class App {
         url
       })
 
-      this.#handleRoute({
+      await this.#handleRoute({
         data,
         controller,
         response,
@@ -86,7 +86,7 @@ export class App {
     }
   }
 
-  #handleRoute({
+  async #handleRoute({
     controller,
     data,
     response,
@@ -96,9 +96,9 @@ export class App {
     data: ControllerPayload
     response: InstanceType<Response>
     url: string
-  }): void {
+  }): Promise<void> {
     try {
-      const result = controller.action({
+      const result = await controller.action({
         data,
         url
       })

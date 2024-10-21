@@ -1,9 +1,9 @@
-import { StoreManager } from '../services/StoreManager'
+import { type StoreManagerAbstract } from '../interfaces'
 
 export class BaseController {
-  protected readonly store: StoreManager
+  protected readonly store: StoreManagerAbstract
 
-  constructor(store: StoreManager) {
+  constructor(store: StoreManagerAbstract) {
     this.store = store
   }
 }

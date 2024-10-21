@@ -15,16 +15,16 @@ export class ReadUser extends BaseController implements Controller {
    * Read user
    * @param payload
    * @param payload.url
-   * @returns User
+   * @returns Promise<User>
    * @throws {ValidationError|StoreError}
    */
-  public action({ url }: ControllerActionParams): User {
+  public async action({ url }: ControllerActionParams): Promise<User> {
     const userId = url.match(this.url)?.[1] ?? ''
 
     if (!isValidId(userId)) {
       throw new ValidationError('User id is invalid')
     }
 
-    return this.store.getUser(userId)
+    return await this.store.getUser(userId)
   }
 }

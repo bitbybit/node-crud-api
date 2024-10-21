@@ -1,4 +1,4 @@
-import { type User } from '../interfaces'
+import { type StoreManagerAbstract, type User } from '../interfaces'
 import { StoreError } from '../exceptions/StoreError'
 import { v4 as uuid } from 'uuid'
 
@@ -6,30 +6,30 @@ class Store {
   public users: User[] = []
 }
 
-export class StoreManager {
+export class StoreManager implements StoreManagerAbstract {
   readonly #store: Store
 
   constructor() {
     this.#store = new Store()
   }
 
-  public getUsers(): User[] {
+  public async getUsers(): Promise<User[]> {
     return this.#store.users
   }
 
   /**
    * Get user by `id`
    * @param userId
-   * @returns User
+   * @returns Promise<User>
    * @throws {StoreError}
    */
-  public getUser(userId: User['id']): User {
+  public async getUser(userId: User['id']): Promise<User> {
     const userIndex = this.#findUserIndex(userId)
 
     return this.#store.users[userIndex]
   }
 
-  public addUser(user: Omit<User, 'id'>): User {
+  public async addUser(user: Omit<User, 'id'>): Promise<User> {
     const newUser = {
       id: uuid(),
       ...user
@@ -43,10 +43,10 @@ export class StoreManager {
   /**
    * Edit user
    * @param user
-   * @returns User
+   * @returns Promise<User>
    * @throws {StoreError}
    */
-  public updateUser(user: User): User {
+  public async updateUser(user: User): Promise<User> {
     const userIndex = this.#findUserIndex(user.id)
 
     this.#store.users[userIndex] = {
@@ -62,7 +62,7 @@ export class StoreManager {
    * @param userId
    * @throws {StoreError}
    */
-  public removeUser(userId: User['id']): void {
+  public async removeUser(userId: User['id']): Promise<void> {
     const userIndex = this.#findUserIndex(userId)
 
     this.#store.users.splice(userIndex, 1)

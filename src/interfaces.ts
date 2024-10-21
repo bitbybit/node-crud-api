@@ -25,3 +25,11 @@ export interface Controller {
 
   action({ data, url }: ControllerActionParams): unknown
 }
+
+export interface StoreManagerAbstract {
+  getUsers(): Promise<User[]>
+  getUser(userId: User['id']): Promise<User>
+  addUser(user: Omit<User, 'id'>): Promise<User>
+  updateUser(user: User): Promise<User>
+  removeUser(userId: User['id']): Promise<void>
+}

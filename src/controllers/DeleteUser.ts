@@ -13,13 +13,13 @@ export class DeleteUser extends BaseController implements Controller {
    * @param payload.url
    * @throws {ValidationError|StoreError}
    */
-  public action({ url }: ControllerActionParams): void {
+  public async action({ url }: ControllerActionParams): Promise<void> {
     const userId = url.match(this.url)?.[1] ?? ''
 
     if (!isValidId(userId)) {
       throw new ValidationError('User id is invalid')
     }
 
-    this.store.removeUser(userId)
+    await this.store.removeUser(userId)
   }
 }

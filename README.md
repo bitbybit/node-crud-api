@@ -28,6 +28,12 @@ npm run start:prod
 npm run start:dev
 ```
 
+### Cluster
+
+```
+npm run start:multi
+```
+
 ## Endpoints
 
 ### Get users

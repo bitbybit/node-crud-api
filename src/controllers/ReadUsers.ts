@@ -7,10 +7,10 @@ export class ReadUsers extends BaseController implements Controller {
 
   /**
    * Read users
-   * @returns User[]
+   * @returns Promise<User[]>
    * @throws {StoreError}
    */
-  public action(): User[] {
-    return this.store.getUsers()
+  public async action(): Promise<User[]> {
+    return await this.store.getUsers()
   }
 }

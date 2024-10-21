@@ -19,10 +19,10 @@ export class CreateUser extends BaseController implements Controller {
    * Create user
    * @param payload
    * @param payload.data
-   * @returns User
+   * @returns Promise<User>
    * @throws {ValidationError}
    */
-  public action({ data }: ControllerActionParams): User {
+  public async action({ data }: ControllerActionParams): Promise<User> {
     const age = data.age as User['age']
 
     if (!isValidAge(age)) {
@@ -47,6 +47,6 @@ export class CreateUser extends BaseController implements Controller {
       username
     }
 
-    return this.store.addUser(user)
+    return await this.store.addUser(user)
   }
 }
