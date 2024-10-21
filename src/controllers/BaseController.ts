@@ -1,9 +1,9 @@
-import { Store } from '../interfaces'
+import { StoreManager } from '../services/StoreManager'
 
-export class BaseController<S extends Store = Store> {
-  #store: S
+export class BaseController {
+  #store: StoreManager
 
-  constructor(store: S) {
+  constructor(store: StoreManager) {
     this.#store = store
   }
 }

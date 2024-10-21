@@ -1,5 +1,6 @@
 import { HttpServer, type Request, type Response } from './HttpServer'
-import { Controller, Store } from '../interfaces'
+import { StoreManager } from './StoreManager'
+import { Controller } from '../interfaces'
 import { CreateUser } from '../controllers/CreateUser'
 import { DeleteUser } from '../controllers/DeleteUser'
 import { ReadUser } from '../controllers/ReadUser'
@@ -8,22 +9,22 @@ import { UpdateUser } from '../controllers/UpdateUser'
 import { ControllerError } from '../exceptions/ControllerError'
 import { HTTP_CODES } from '../const/http-codes'
 
-type AppParams<S> = {
+type AppParams = {
   port: number
   baseUrl: string
-  store: S
+  store: StoreManager
 }
 
-export class App<S extends Store = Store> {
+export class App {
   readonly #baseUrl: string
 
   readonly #server: HttpServer['instance']
 
-  readonly #store: S
+  readonly #store: StoreManager
 
   readonly #controllers: Controller[]
 
-  constructor(params: AppParams<S>) {
+  constructor(params: AppParams) {
     const httpServer = new HttpServer({
       port: params.port
     })
@@ -35,12 +36,12 @@ export class App<S extends Store = Store> {
     this.#store = params.store
 
     this.#controllers = [
-      new CreateUser(this.#store),
-      new DeleteUser(this.#store),
-      new ReadUser(this.#store),
-      new ReadUsers(this.#store),
-      new UpdateUser(this.#store)
-    ]
+      CreateUser,
+      DeleteUser,
+      ReadUser,
+      ReadUsers,
+      UpdateUser
+    ].map((controllerClass) => new controllerClass(this.#store))
   }
 
   public init(): void {
