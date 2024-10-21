@@ -1,13 +1,25 @@
-import { Controller } from '../interfaces'
-import { UUID_V4_RE } from '../const/regexp'
+import { type Controller, type ControllerActionParams } from '../interfaces'
 import { BaseController } from './BaseController'
+import { isValidId } from '../helpers/validation'
+import { ValidationError } from '../exceptions/ValidationError'
 
 export class DeleteUser extends BaseController implements Controller {
-  private userIdRegExp = UUID_V4_RE
-
   public method: Controller['method'] = 'delete'
+  public url: Controller['url'] = /^users\/(.+)$/
 
-  public url: Controller['url'] = new RegExp(
-    '^users/(' + this.userIdRegExp.source + ')$'
-  )
+  /**
+   * Delete user
+   * @param payload
+   * @param payload.url
+   * @throws {ValidationError|StoreError}
+   */
+  public action({ url }: ControllerActionParams): void {
+    const userId = url.match(this.url)?.[1] ?? ''
+
+    if (!isValidId(userId)) {
+      throw new ValidationError('User id is invalid')
+    }
+
+    this.store.removeUser(userId)
+  }
 }

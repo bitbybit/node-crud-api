@@ -1,6 +1,11 @@
 import { HttpServer, type Request, type Response } from './HttpServer'
 import { StoreManager } from './StoreManager'
-import { Controller } from '../interfaces'
+import {
+  type Controller,
+  type ControllerPayload,
+  type ControllerPayloadKeys,
+  type ControllerPayloadValues
+} from '../interfaces'
 import { CreateUser } from '../controllers/CreateUser'
 import { DeleteUser } from '../controllers/DeleteUser'
 import { ReadUser } from '../controllers/ReadUser'
@@ -8,6 +13,8 @@ import { ReadUsers } from '../controllers/ReadUsers'
 import { UpdateUser } from '../controllers/UpdateUser'
 import { ControllerError } from '../exceptions/ControllerError'
 import { HTTP_CODES } from '../const/http-codes'
+import { StoreError } from '../exceptions/StoreError'
+import { ValidationError } from '../exceptions/ValidationError'
 
 type AppParams = {
   port: number
@@ -17,19 +24,14 @@ type AppParams = {
 
 export class App {
   readonly #baseUrl: string
-
-  readonly #server: HttpServer['instance']
-
+  readonly #server: HttpServer
   readonly #store: StoreManager
-
   readonly #controllers: Controller[]
 
   constructor(params: AppParams) {
-    const httpServer = new HttpServer({
+    this.#server = new HttpServer({
       port: params.port
     })
-
-    this.#server = httpServer.instance
 
     this.#baseUrl = params.baseUrl
 
@@ -45,7 +47,7 @@ export class App {
   }
 
   public init(): void {
-    this.#server.on('request', this.#handleRequest.bind(this))
+    this.#server.instance.on('request', this.#handleRequest.bind(this))
   }
 
   /**
@@ -54,42 +56,81 @@ export class App {
    * @param response
    * @throws {Error}
    */
-  #handleRequest<
+  async #handleRequest<
     Req extends Request = Request,
     Res extends Response<Req> = Response
-  >(request: InstanceType<Req>, response: InstanceType<Res>): void {
+  >(request: InstanceType<Req>, response: InstanceType<Res>): Promise<void> {
     try {
-      const method = request.method?.toLowerCase() ?? ''
+      const method = this.#server.getRequestMethod(request)
 
-      const url = request.url?.slice(this.#baseUrl.length)?.toLowerCase() ?? ''
+      const url = this.#server.getRequestUrl(request, this.#baseUrl)
+
+      const data = await this.#server.getRequestData<
+        ControllerPayloadKeys,
+        ControllerPayloadValues
+      >(request)
 
       const controller = this.#findController({
         method,
         url
       })
 
-      this.#handleRoute(response, controller)
+      this.#handleRoute({
+        data,
+        controller,
+        response,
+        url
+      })
     } catch (e) {
       this.#handleRequestException(response, e)
     }
   }
 
-  /**
-   * Request exception handling logic
-   * @param response
-   * @param e
-   * @throws {Error}
-   */
-  #handleRequestException(response: InstanceType<Response>, e: unknown): void {
-    const error = e as Error
+  #handleRoute({
+    controller,
+    data,
+    response,
+    url
+  }: {
+    controller: Controller
+    data: ControllerPayload
+    response: InstanceType<Response>
+    url: string
+  }): void {
+    try {
+      const result = controller.action({
+        data,
+        url
+      })
 
-    const isControllerError =
-      (error as ControllerError).name === 'ControllerError'
+      const isCreate = controller instanceof CreateUser
+      const isDelete = controller instanceof DeleteUser
 
-    if (isControllerError) {
-      this.#handleNotFound(response, error.message)
-    } else {
-      throw e
+      let code: number
+
+      switch (true) {
+        case isCreate:
+          code = HTTP_CODES.created
+          break
+
+        case isDelete:
+          code = HTTP_CODES.noContent
+          break
+
+        default:
+          code = HTTP_CODES.ok
+          break
+      }
+
+      this.#server.setResponseCode(response, code)
+
+      if (!isDelete) {
+        this.#server.setResponseBody(response, result)
+      } else {
+        response.end()
+      }
+    } catch (e) {
+      this.#handleRouteException(response, e)
     }
   }
 
@@ -114,34 +155,82 @@ export class App {
 
     if (foundController === undefined) {
       throw new ControllerError(
-        `Controller for method ${method.toUpperCase()} and URL ${this.#baseUrl}${url} not found`
+        `Controller for method ${method.toUpperCase()} and URL ${url} not found`
       )
     }
 
     return foundController
   }
 
-  #handleRoute(response: InstanceType<Response>, controller: Controller): void {
-    this.#setResponseCode(response, HTTP_CODES.Ok)
+  /**
+   * Request exception handling logic
+   * @param response
+   * @param e
+   * @throws {Error}
+   */
+  #handleRequestException(response: InstanceType<Response>, e: unknown): void {
+    const error = e as Error
 
-    this.#setResponseBody(response, {
-      data: controller.constructor.name
-    })
+    const isControllerError =
+      (error as ControllerError).name === 'ControllerError'
+
+    if (isControllerError) {
+      this.#handleNotFound(response, error.message)
+    } else {
+      this.#handleUncaught(response)
+    }
+  }
+
+  /**
+   * Route exception handling logic
+   * @param response
+   * @param e
+   * @throws {Error}
+   */
+  #handleRouteException(response: InstanceType<Response>, e: unknown): void {
+    const error = e as Error
+
+    const isStoreError = (error as StoreError).name === 'StoreError'
+
+    const isValidationError =
+      (error as ValidationError).name === 'ValidationError'
+
+    switch (true) {
+      case isStoreError:
+        this.#handleNotFound(response, error.message)
+        break
+
+      case isValidationError:
+        this.#handleInvalid(response, error.message)
+        break
+
+      default:
+        this.#handleUncaught(response)
+        break
+    }
   }
 
   #handleNotFound(response: InstanceType<Response>, message: string): void {
-    this.#setResponseCode(response, HTTP_CODES.NotOFund)
+    this.#server.setResponseCode(response, HTTP_CODES.notFound)
 
-    this.#setResponseBody(response, {
+    this.#server.setResponseBody(response, {
       message
     })
   }
 
-  #setResponseCode(response: InstanceType<Response>, code: number): void {
-    response.writeHead(code, { 'Content-Type': 'application/json' })
+  #handleInvalid(response: InstanceType<Response>, message: string): void {
+    this.#server.setResponseCode(response, HTTP_CODES.badRequest)
+
+    this.#server.setResponseBody(response, {
+      message
+    })
   }
 
-  #setResponseBody<Body>(response: InstanceType<Response>, body: Body): void {
-    response.end(JSON.stringify(body))
+  #handleUncaught(response: InstanceType<Response>): void {
+    this.#server.setResponseCode(response, HTTP_CODES.serverError)
+
+    this.#server.setResponseBody(response, {
+      message: 'Internal server error'
+    })
   }
 }

@@ -1,13 +1,61 @@
-import { Controller } from '../interfaces'
-import { UUID_V4_RE } from '../const/regexp'
+import {
+  type Controller,
+  type ControllerActionParams,
+  type User
+} from '../interfaces'
 import { BaseController } from './BaseController'
+import {
+  isValidAge,
+  isValidHobbies,
+  isValidId,
+  isValidUsername
+} from '../helpers/validation'
+import { ValidationError } from '../exceptions/ValidationError'
 
 export class UpdateUser extends BaseController implements Controller {
-  private userIdRegExp = UUID_V4_RE
-
   public method: Controller['method'] = 'put'
+  public url: Controller['url'] = /^users\/(.+)$/
 
-  public url: Controller['url'] = new RegExp(
-    '^users/(' + this.userIdRegExp.source + ')$'
-  )
+  /**
+   * Update user
+   * @param payload
+   * @param payload.data
+   * @param payload.url
+   * @returns User
+   * @throws {ValidationError|StoreError}
+   */
+  public action({ data, url }: ControllerActionParams): User {
+    const userId = url.match(this.url)?.[1] ?? ''
+
+    if (!isValidId(userId)) {
+      throw new ValidationError('User id is invalid')
+    }
+
+    const age = data.age as User['age']
+
+    if (!isValidAge(age)) {
+      throw new ValidationError('User age is invalid')
+    }
+
+    const hobbies = data.hobbies as User['hobbies']
+
+    if (!isValidHobbies(hobbies)) {
+      throw new ValidationError('User hobbies is invalid')
+    }
+
+    const username = data.username as User['username']
+
+    if (!isValidUsername(username)) {
+      throw new ValidationError('User username is invalid')
+    }
+
+    const user = {
+      age,
+      hobbies,
+      id: userId,
+      username
+    }
+
+    return this.store.updateUser(user)
+  }
 }

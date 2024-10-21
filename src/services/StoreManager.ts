@@ -1,4 +1,4 @@
-import { User } from '../interfaces'
+import { type User } from '../interfaces'
 import { StoreError } from '../exceptions/StoreError'
 import { v4 as uuid } from 'uuid'
 
@@ -29,22 +29,32 @@ export class StoreManager {
     return this.#store.users[userIndex]
   }
 
-  public addUser(user: Omit<User, 'id'>): void {
-    this.#store.users.push({
+  public addUser(user: Omit<User, 'id'>): User {
+    const newUser = {
       id: uuid(),
       ...user
-    })
+    }
+
+    this.#store.users.push(newUser)
+
+    return newUser
   }
 
   /**
    * Edit user
    * @param user
+   * @returns User
    * @throws {StoreError}
    */
-  public updateUser(user: User): void {
+  public updateUser(user: User): User {
     const userIndex = this.#findUserIndex(user.id)
 
-    this.#store.users[userIndex] = user
+    this.#store.users[userIndex] = {
+      ...this.#store.users[userIndex],
+      ...user
+    }
+
+    return this.#store.users[userIndex]
   }
 
   /**
