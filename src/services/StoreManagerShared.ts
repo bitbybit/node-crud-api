@@ -4,7 +4,9 @@ import { StoreError } from '../exceptions/StoreError'
 export class StoreManagerShared implements StoreManagerAbstract {
   public async getUsers(): Promise<User[]> {
     return await new Promise((resolve, reject) => {
-      process.send({ type: 'getUsers' })
+      if (process.send !== undefined) {
+        process.send({ type: 'getUsers' })
+      }
 
       process.once(
         'message',
@@ -33,7 +35,9 @@ export class StoreManagerShared implements StoreManagerAbstract {
 
   public async getUser(userId: User['id']): Promise<User> {
     return await new Promise((resolve, reject) => {
-      process.send({ type: 'getUser', userId })
+      if (process.send !== undefined) {
+        process.send({ type: 'getUser', userId })
+      }
 
       process.once(
         'message',
@@ -62,7 +66,9 @@ export class StoreManagerShared implements StoreManagerAbstract {
 
   public async addUser(user: Omit<User, 'id'>): Promise<User> {
     return await new Promise((resolve, reject) => {
-      process.send({ type: 'addUser', user })
+      if (process.send !== undefined) {
+        process.send({ type: 'addUser', user })
+      }
 
       process.once(
         'message',
@@ -91,7 +97,9 @@ export class StoreManagerShared implements StoreManagerAbstract {
 
   public async updateUser(user: User): Promise<User> {
     return await new Promise((resolve, reject) => {
-      process.send({ type: 'updateUser', user })
+      if (process.send !== undefined) {
+        process.send({ type: 'updateUser', user })
+      }
 
       process.once(
         'message',
@@ -120,7 +128,9 @@ export class StoreManagerShared implements StoreManagerAbstract {
 
   public async removeUser(userId: User['id']): Promise<void> {
     return await new Promise((resolve, reject) => {
-      process.send({ type: 'removeUser', userId })
+      if (process.send !== undefined) {
+        process.send({ type: 'removeUser', userId })
+      }
 
       process.once(
         'message',
